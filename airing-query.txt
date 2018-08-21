@@ -4,7 +4,7 @@ query($page: Int, $stdt: FuzzyDateInt) {
             currentPage
             lastPage
         }
-        media(type: ANIME, format_in: [TV, TV_SHORT, MUSIC, ONA, OVA, MOVIE, SPECIAL], status_in: [RELEASING, NOT_YET_RELEASED, FINISHED], genre_not_in: ["HENTAI"], startDate_greater: $stdt, sort: [STATUS]) {
+        media(type: ANIME, format_in: [TV, TV_SHORT, MUSIC, ONA, OVA, MOVIE, SPECIAL], status_in: [RELEASING, FINISHED], genre_not_in: ["HENTAI"], startDate_greater: $stdt, sort: [STATUS]) {
             title {
                 romaji
             }
