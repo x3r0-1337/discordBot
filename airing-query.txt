@@ -1,0 +1,37 @@
+query($page: Int, $stdt: FuzzyDateInt) {
+    Page(page: $page, perPage: 50) {
+        pageInfo {
+            currentPage
+            lastPage
+        }
+        media(type: ANIME, format_in: [TV, TV_SHORT, MUSIC, ONA, OVA, MOVIE, SPECIAL], status_in: [RELEASING, NOT_YET_RELEASED, FINISHED], genre_not_in: ["HENTAI"], startDate_greater: $stdt, sort: [STATUS]) {
+            title {
+                romaji
+            }
+            id
+            format
+            status
+            description(asHtml: false)
+            startDate {
+                year
+                month
+            }
+            endDate {
+                year
+                month
+            }
+            season
+            episodes
+            source
+            coverImage {
+                large
+            }
+            genres
+            synonyms
+            nextAiringEpisode {
+                episode
+            }
+            siteUrl
+        }
+    }
+}
