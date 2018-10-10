@@ -3,6 +3,7 @@ import asyncio
 from datetime import date
 from discord.ext.commands import Bot
 import anilistParser
+import re
 
 
 def initialize():
@@ -20,15 +21,17 @@ def initialize():
         with open('config.txt', 'r') as config:
             line = config.readlines()
             channellist = []
+            flag = 0
             for i in range(0, len(line)):
+                if flag == 1:
+                    channellist.append(line[i].strip())
+                    continue
                 if 'token' in line[i].split():
                     token = str(list(line[i].strip().split()).pop())
                 elif 'identifier' in line[i].split():
                     identifier = str(list(line[i].strip().split()).pop())
-                elif ('channel_list' in line[i].split()) and (
-                      (len(line) - 1) > i):
-                    for i in line[(i+1):(len(line))]:
-                        channellist.append(int(i))
+                elif ('channel_list' in line[i].split()) and ((len(line) - 1) > i):
+                    flag = 1
         print('Configuration initialized from config.txt')
         return token, identifier, channellist
 
@@ -91,7 +94,7 @@ def retrieve(animu: anilistParser.anime):
     else:
         sdt = animu.season + ' ' + animu.styear
     if animu.status == "Airing":
-        statair = (" - " + animu.nextep + " / " + animu.episodes)
+        statair = (" - " + animu.currep + " / " + animu.episodes)
     else:
         statair = ''
     myembed.set_footer(text="Season: " + sdt + " | " + animu.status + statair)
@@ -108,10 +111,22 @@ def anidb(id):
             for line in adb:
                 if str(id) in line:
                     return 1
-                    break
         with open('animudb.txt', 'a') as db:
             db.write(str(id) + '\n')
         return 0
+
+
+async def findMessage(channel, reqdtitle):
+    async for message in channel.history(limit=300):
+        if message.author == bot.user:
+            if message.embeds[0].title == reqdtitle:
+                print(reqdtitle.strip() + '\tfound.')
+                return message
+            else:
+                requestedMessage = 'Null'
+        else:
+            requestedMessage = 'Null'
+    return requestedMessage
 
 
 print(discord.__version__)
@@ -191,7 +206,8 @@ async def anime(ctx):
 
 @anime.command(pass_context=True)
 async def airing(ctx):
-    if str(ctx.message.channel.id) in channellist:
+    channel = ctx.message.channel
+    if str(channel.id) in channellist:
         await ctx.message.channel.trigger_typing()
         year = int(date.today().year)
         month = int(date.today().month)
@@ -200,19 +216,32 @@ async def airing(ctx):
             month = 12
         else:
             month -= 1
-        airanime = await anilistParser.queryAiring()
+        airanime = await anilistParser.query('airing')
         for a in airanime:
-            if (a.status == 'Finished Airing') and ((int(a.styear) < year) or (
-                 (int(a.edyear) < year) and (int(a.edmonthint) < month)) or (
-                  a.stmonthint + (int(a.episodes) if
-                                  a.episodes != 'Unknown' else 0)//4 < month)):
+            if (a.status == 'Finished Airing') and ((int(a.styear) < year) or ((int(a.edyear) < year) and (int(a.edmonthint) < month)) or (a.stmonthint + (int(a.episodes) if a.episodes != 'Unknown' else 0)//4 < month)):
                 continue
             existence = anidb(a.id)
             if existence == 1:
-                continue
-            await ctx.message.channel.trigger_typing()
-            myembed = retrieve(a)
-            await ctx.send(embed=myembed)
+                if a.status == 'Finished Airing':
+                    continue
+                embedmessage = await findMessage(channel, a.title)
+                reg = re.compile(r'\d+|Unknown+')
+                if embedmessage != 'Null':
+                    if reg.findall(str(embedmessage.embeds[0].footer.text))[1] != a.currep:
+                        print(reg.findall(embedmessage.embeds[0].footer.text))
+                        print(a.currep)
+                        myembed = retrieve(a)
+                        await embedmessage.edit(embed=myembed)
+                    else:
+                        print('no change')
+                        continue
+                else:
+                    print('exists but not found - ' + a.title)
+                    continue
+            else:
+                await ctx.message.channel.trigger_typing()
+                myembed = retrieve(a)
+                await ctx.send(embed=myembed)
 
 
 bot.run(token)
