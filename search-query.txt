@@ -1,0 +1,37 @@
+query($page: Int, $var: String) {
+    Page(page: $page, perPage: 50) {
+        pageInfo {
+            currentPage
+            lastPage
+        }
+        media(type: ANIME, search: $var, genre_not_in: ["HENTAI"], sort: [TITLE_ROMAJI]) {
+            title {
+                romaji
+            }
+            id
+            format
+            status
+            description(asHtml: false)
+            startDate {
+                year
+                month
+            }
+            endDate {
+                year
+                month
+            }
+            season
+            episodes
+            source
+            coverImage {
+                large
+            }
+            genres
+            synonyms
+            nextAiringEpisode {
+                episode
+            }
+            siteUrl
+        }
+    }
+}

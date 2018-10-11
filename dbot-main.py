@@ -101,6 +101,17 @@ def retrieve(animu: anilistParser.anime):
     return myembed
 
 
+def anichoice(alist):
+    if len(alist) == 0:
+        embed = discord.Embed(title='No Search Results')
+    else:
+        embed = discord.Embed(title='Search Results')
+        for i, j in enumerate(alist):
+            embed.add_field(name=('`' + str(i+1) + '.` ' + j.title), value='\u200b', inline=False)
+        embed.set_footer(text='Type a number to view more information or `cancel` to cancel search.')
+    return embed
+
+
 def anidb(id):
     try:
         with open('animudb.txt', 'x') as db:
@@ -120,7 +131,6 @@ async def findMessage(channel, reqdtitle):
     async for message in channel.history(limit=300):
         if message.author == bot.user:
             if message.embeds[0].title == reqdtitle:
-                print(reqdtitle.strip() + '\tfound.')
                 return message
             else:
                 requestedMessage = 'Null'
@@ -155,6 +165,15 @@ async def delete(ctx, num: int):
     else:
         await ctx.send('You do not have the required permissions to invoke ' +
                        'this command', delete_after=5.0)
+
+
+@bot.command(pass_context=True)
+async def xkcd(ctx, *num):
+    if str(ctx.message.channel.id) in channellist:
+        if len(num) == 0:
+            await ctx.send('https://xkcd.com')
+        else:
+            await ctx.send('https://xkcd.com/' + str(num[0]))
 
 
 @bot.group(pass_context=True)
@@ -218,7 +237,7 @@ async def airing(ctx):
             month -= 1
         airanime = await anilistParser.query('airing')
         for a in airanime:
-            if (a.status == 'Finished Airing') and ((int(a.styear) < year) or ((int(a.edyear) < year) and (int(a.edmonthint) < month)) or (a.stmonthint + (int(a.episodes) if a.episodes != 'Unknown' else 0)//4 < month)):
+            if (a.status == 'Finished Airing') and ((int(a.styear) < year) or (a.stmonthint + (int(a.episodes) if a.episodes != 'Unknown' else 0)//4 < month)) :
                 continue
             existence = anidb(a.id)
             if existence == 1:
@@ -228,20 +247,48 @@ async def airing(ctx):
                 reg = re.compile(r'\d+|Unknown+')
                 if embedmessage != 'Null':
                     if reg.findall(str(embedmessage.embeds[0].footer.text))[1] != a.currep:
-                        print(reg.findall(embedmessage.embeds[0].footer.text))
-                        print(a.currep)
                         myembed = retrieve(a)
                         await embedmessage.edit(embed=myembed)
                     else:
-                        print('no change')
                         continue
                 else:
-                    print('exists but not found - ' + a.title)
                     continue
             else:
                 await ctx.message.channel.trigger_typing()
                 myembed = retrieve(a)
                 await ctx.send(embed=myembed)
+
+
+@anime.command(pass_context=True)
+async def search(ctx, *searchstr):
+
+
+    def check(n):
+        return ((n.content.isdigit() or n.content=='cancel') and n.author == ctx.message.author)
+    
+
+    if str(ctx.message.channel.id) in channellist:
+            await ctx.message.channel.trigger_typing()
+            searchres = await anilistParser.query('search', ' '.join(searchstr))
+            embedchoice = anichoice(searchres)
+            msg = await ctx.send(embed=embedchoice)
+            if embedchoice.title == 'No Search Results':
+                await asyncio.sleep(5)
+                await msg.delete()
+            else:
+                try:
+                    res = await bot.wait_for('message', check=check, timeout=300.0)
+                except asyncio.TimeoutError:
+                    await msg.edit(content='Search Timed Out, Try again.', embed=None, delete_after=5.0)
+                else:
+                    if res.content.isdigit():
+                        resnum = int(res.content)-1
+                        resanimu = retrieve(searchres[resnum])
+                        await msg.edit(embed=resanimu)
+                        await res.delete()
+                    elif res.content == 'cancel':
+                        await msg.edit(content='Cancelled.', embed=None, delete_after=5.0)
+                        await res.delete()
 
 
 bot.run(token)
