@@ -7,7 +7,7 @@ class diffrenciate:
         self.equation=polynomial
         self.point=point
 
-        def differentiate(self,self.equation,self.point):
+        def value(self):
             pattern2=re.compile(r"([+-])?(\d+)?x(\^)?(\d+)?")
             match2=pattern2.finditer(self.equation)
             s=0

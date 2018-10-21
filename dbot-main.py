@@ -4,6 +4,7 @@ from datetime import date
 from discord.ext.commands import Bot
 import anilistParser
 import re
+import diffrenciate
 
 
 def initialize():
@@ -174,7 +175,12 @@ async def xkcd(ctx, *num):
             await ctx.send('https://xkcd.com')
         else:
             await ctx.send('https://xkcd.com/' + str(num[0]))
-
+# Added a functionality to diffrenciate a polynomial of the form ax^n+bx^n-1 invoke command by typing $diffrenciate equation point 
+@bot.command(pass_context=True)
+async def diffrenciate(ctx):
+    polynomial,point=ctx.split(" ")
+    polynomial_d=differentiate(ctx,point)
+    ctx.send(polynomial_d.value())
 
 @bot.group(pass_context=True)
 async def channel(ctx):
@@ -265,7 +271,7 @@ async def search(ctx, *searchstr):
 
     def check(n):
         return ((n.content.isdigit() or n.content=='cancel') and n.author == ctx.message.author)
-    
+
 
     if str(ctx.message.channel.id) in channellist:
             await ctx.message.channel.trigger_typing()
